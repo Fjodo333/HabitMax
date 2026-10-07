@@ -21,7 +21,8 @@ button,input,select{font-family:inherit}
 button{cursor:pointer}
 button:focus-visible,input:focus-visible{outline:2px solid #F5B841;outline-offset:2px}
 .scroll::-webkit-scrollbar{display:none}
-#root{height:100%}
+#root{position:fixed;inset:0}
+#root::before{content:'';position:fixed;top:0;left:0;right:0;height:env(safe-area-inset-top,0px);background:#0E0F11;z-index:50;pointer-events:none}
 input,textarea{font-size:16px!important}
 input[type=time]{color-scheme:dark}
 *{-webkit-tap-highlight-color:transparent}
@@ -32,7 +33,7 @@ input[type=time]{color-scheme:dark}
 <template id="dc-tpl">
 <div style="position: relative; width: 100%; height: 100%; max-width: 500px; margin: 0 auto; box-sizing: border-box; display: flex; flex-direction: column; background: #0E0F11; color: #EDEEF0; font-family: Manrope, 'Segoe UI', system-ui, sans-serif; overflow: hidden">
 
-<div class="scroll" style="flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: none; padding: calc(env(safe-area-inset-top, 0px) + 24px) 20px 32px; box-sizing: border-box">
+<div class="scroll" style="flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: none; padding: calc(max(env(safe-area-inset-top, 0px), 50px) + 30px) 20px 32px; box-sizing: border-box">
 
 <!-- ============ TODAY ============ -->
 <sc-if value="{{show.today}}" hint-placeholder-val="{{true}}">
@@ -77,6 +78,8 @@ input[type=time]{color-scheme:dark}
 <button onClick="{{o.pick}}" style="min-height: 44px; padding: 0 14px; border-radius: 999px; border: 1px solid #3A3E45; background: #1E2125; color: #EDEEF0; font-size: 14px; font-weight: 600">{{o.title}}</button>
 </sc-for>
 </div>
+<sc-if value="{{checkin.noOptions}}" hint-placeholder-val="{{false}}"><span style="font-size: 14px; color: #A0A4AC">Nothing planned yet. Add goals and tasks, or just skip for today.</span></sc-if>
+<button onClick="{{checkin.skip}}" style="align-self: flex-start; min-height: 44px; padding: 0 14px; border: 1px solid #3A3E45; border-radius: 12px; background: transparent; color: #EDEEF0; font-size: 13px; font-weight: 600">Skip</button>
 </div>
 </sc-if>
 </div>
@@ -220,34 +223,6 @@ Evening review
 <h1 style="margin: 0; font-family: 'Space Grotesk', system-ui, sans-serif; font-size: 40px; font-weight: 700; letter-spacing: -0.02em">Week</h1>
 </div>
 
-<section style="display: flex; flex-direction: column; gap: 14px; padding: 18px; border-radius: 20px; background: #16181B">
-<div style="display: flex; justify-content: space-between; align-items: baseline">
-<h2 style="margin: 0; font-family: 'Space Grotesk', system-ui, sans-serif; font-size: 18px; font-weight: 600">Weekly targets</h2>
-<span style="font-size: 12px; color: #A0A4AC">done · planned</span>
-</div>
-<sc-for list="{{targets}}" as="g" hint-placeholder-count="5">
-<div style="display: flex; flex-direction: column; gap: 6px">
-<div style="display: flex; justify-content: space-between; gap: 12px">
-<span style="font-size: 14px; font-weight: 600">{{g.title}} {{g.times}}</span>
-<span style="font-size: 13px; color: {{g.statusColor}}">{{g.status}}</span>
-</div>
-<div style="height: 6px; border-radius: 3px; background: #23262B; overflow: hidden; display: flex; gap: 2px">
-<div style="height: 6px; width: {{g.donePct}}%; background: {{accent}}"></div>
-<div style="height: 6px; width: {{g.planPct}}%; background: #5A5F68"></div>
-</div>
-</div>
-</sc-for>
-<sc-if value="{{hasSuggestions}}" hint-placeholder-val="{{false}}">
-<div style="display: flex; gap: 10px">
-<button onClick="{{acceptAll}}" style="flex: 1; min-height: 48px; border: 0; border-radius: 14px; background: {{accent}}; color: #1A1405; font-size: 15px; font-weight: 700">Accept {{suggestionCount}} suggestions</button>
-<button onClick="{{clearSuggestions}}" style="min-height: 48px; padding: 0 16px; border: 1px solid #3A3E45; border-radius: 14px; background: transparent; color: #EDEEF0; font-size: 15px; font-weight: 600">Clear</button>
-</div>
-</sc-if>
-<sc-if value="{{canSuggest}}" hint-placeholder-val="{{true}}">
-<button onClick="{{suggest}}" style="min-height: 48px; border: 1px solid {{accent}}; border-radius: 14px; background: transparent; color: {{accent}}; font-size: 15px; font-weight: 700">Suggest times for the rest</button>
-</sc-if>
-<span style="font-size: 12px; color: #A0A4AC">Missed something? It moves to your next free day automatically.</span>
-</section>
 
 <div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px">
 <sc-for list="{{days}}" as="d" hint-placeholder-count="7">
@@ -273,6 +248,9 @@ Evening review
 </sc-if>
 <sc-if value="{{b.isFixed}}" hint-placeholder-val="{{false}}">
 <button onClick="{{b.cancel}}" style="min-height: 44px; flex: none; padding: 0 12px; border: 1px solid #3A3E45; border-radius: 12px; background: transparent; color: #EDEEF0; font-size: 13px; font-weight: 600">{{b.cancelText}}</button>
+<button onClick="{{b.deleteFixed}}" aria-label="{{b.removeLabel}}" style="width: 44px; height: 44px; flex: none; border: 0; border-radius: 12px; background: transparent; color: #80848C; display: flex; align-items: center; justify-content: center; padding: 0">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6M14 11v6"></path><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path></svg>
+</button>
 </sc-if>
 <sc-if value="{{b.canRemove}}" hint-placeholder-val="{{true}}">
 <button onClick="{{b.remove}}" aria-label="{{b.removeLabel}}" style="width: 44px; height: 44px; flex: none; border: 0; border-radius: 12px; background: transparent; color: #80848C; display: flex; align-items: center; justify-content: center; padding: 0">
@@ -299,6 +277,36 @@ Evening review
 </div>
 <button onClick="{{nb.add}}" style="min-height: 48px; border: 0; border-radius: 14px; background: {{accent}}; color: #1A1405; font-size: 15px; font-weight: 700">Add · repeats weekly</button>
 </div>
+
+<section style="display: flex; flex-direction: column; gap: 14px; padding: 18px; border-radius: 20px; background: #16181B">
+<div style="display: flex; justify-content: space-between; align-items: baseline">
+<h2 style="margin: 0; font-family: 'Space Grotesk', system-ui, sans-serif; font-size: 18px; font-weight: 600">Goals this week</h2>
+<span style="font-size: 12px; color: #A0A4AC">done · planned</span>
+</div>
+<sc-for list="{{targets}}" as="g" hint-placeholder-count="5">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<div style="display: flex; justify-content: space-between; gap: 12px">
+<span style="font-size: 14px; font-weight: 600">{{g.title}} {{g.times}}</span>
+<span style="font-size: 13px; color: {{g.statusColor}}">{{g.status}}</span>
+</div>
+<div style="height: 6px; border-radius: 3px; background: #23262B; overflow: hidden; display: flex; gap: 2px">
+<div style="height: 6px; width: {{g.donePct}}%; background: {{accent}}"></div>
+<div style="height: 6px; width: {{g.planPct}}%; background: #5A5F68"></div>
+</div>
+</div>
+</sc-for>
+<sc-if value="{{noTargets}}" hint-placeholder-val="{{false}}"><span style="font-size: 14px; color: #A0A4AC">No weekly habits yet. Add a goal in Goals and its habits show up here.</span></sc-if>
+<sc-if value="{{hasSuggestions}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; gap: 10px">
+<button onClick="{{acceptAll}}" style="flex: 1; min-height: 48px; border: 0; border-radius: 14px; background: {{accent}}; color: #1A1405; font-size: 15px; font-weight: 700">Accept {{suggestionCount}} suggestions</button>
+<button onClick="{{clearSuggestions}}" style="min-height: 48px; padding: 0 16px; border: 1px solid #3A3E45; border-radius: 14px; background: transparent; color: #EDEEF0; font-size: 15px; font-weight: 600">Clear</button>
+</div>
+</sc-if>
+<sc-if value="{{canSuggest}}" hint-placeholder-val="{{true}}">
+<button onClick="{{suggest}}" style="min-height: 48px; border: 1px solid {{accent}}; border-radius: 14px; background: transparent; color: {{accent}}; font-size: 15px; font-weight: 700">Suggest times for the rest</button>
+</sc-if>
+<span style="font-size: 12px; color: #A0A4AC">Missed something? It moves to your next free day automatically.</span>
+</section>
 </div>
 </sc-if>
 
@@ -403,14 +411,83 @@ New goal
 <span style="font-size: 12px; color: #A0A4AC">{{g.summary}}</span>
 </button>
 <sc-if value="{{g.open}}" hint-placeholder-val="{{false}}">
+<sc-if value="{{g.editing}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; flex-direction: column; gap: 18px; padding: 0 18px 18px">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 13px; font-weight: 700; color: #A0A4AC">Name</span>
+<input aria-label="Goal name" value="{{g.name}}" onChange="{{g.onName}}" style="min-height: 44px; box-sizing: border-box; padding: 0 12px; border-radius: 12px; border: 1px solid #2A2D33; background: #0E0F11; color: #EDEEF0; font-size: 14px">
+<span style="font-size: 13px; font-weight: 700; color: #A0A4AC; margin-top: 6px">Done when</span>
+<input aria-label="Done when" value="{{g.doneWhen}}" onChange="{{g.onDoneWhen}}" style="min-height: 44px; box-sizing: border-box; padding: 0 12px; border-radius: 12px; border: 1px solid #2A2D33; background: #0E0F11; color: #EDEEF0; font-size: 14px">
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<span style="font-size: 13px; font-weight: 700; color: #A0A4AC">Every week</span>
+<sc-for list="{{g.editHabits}}" as="h" hint-placeholder-count="2">
+<div style="display: flex; flex-direction: column; gap: 4px; padding: 8px; border-radius: 14px; background: #1E2125">
+<div style="display: flex; align-items: center; gap: 4px">
+<input aria-label="Habit name" value="{{h.title}}" onChange="{{h.onTitle}}" style="flex: 1; min-width: 0; min-height: 44px; box-sizing: border-box; padding: 0 12px; border-radius: 12px; border: 1px solid #2A2D33; background: #0E0F11; color: #EDEEF0; font-size: 14px">
+<button onClick="{{h.remove}}" aria-label="{{h.removeLabel}}" style="width: 40px; height: 44px; flex: none; border: 0; border-radius: 12px; background: transparent; color: #80848C; display: flex; align-items: center; justify-content: center; padding: 0"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><line x1="6" y1="6" x2="18" y2="18"></line><line x1="18" y1="6" x2="6" y2="18"></line></svg></button>
+</div>
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-left: 4px">
+<div style="display: flex; align-items: center">
+<span style="font-size: 12px; color: #A0A4AC; margin-right: 2px">Per week</span>
+<button onClick="{{h.minus}}" aria-label="Fewer times" style="width: 34px; height: 44px; border: 0; background: transparent; color: #EDEEF0; font-size: 20px; font-weight: 700; padding: 0">−</button>
+<span style="min-width: 24px; text-align: center; font-size: 14px; font-weight: 700">{{h.count}}×</span>
+<button onClick="{{h.plus}}" aria-label="More times" style="width: 34px; height: 44px; border: 0; background: transparent; color: #EDEEF0; font-size: 20px; font-weight: 700; padding: 0">+</button>
+</div>
+<div style="display: flex; align-items: center">
+<button onClick="{{h.durMinus}}" aria-label="Shorter" style="width: 34px; height: 44px; border: 0; background: transparent; color: #EDEEF0; font-size: 20px; font-weight: 700; padding: 0">−</button>
+<span style="min-width: 52px; text-align: center; font-size: 14px; font-weight: 700">{{h.dur}} min</span>
+<button onClick="{{h.durPlus}}" aria-label="Longer" style="width: 34px; height: 44px; border: 0; background: transparent; color: #EDEEF0; font-size: 20px; font-weight: 700; padding: 0">+</button>
+</div>
+</div>
+</div>
+</sc-for>
+<div style="display: flex; gap: 8px">
+<input aria-label="New weekly habit" value="{{nh.title}}" onChange="{{nh.onTitle}}" placeholder="Add a weekly habit…" style="flex: 1; min-width: 0; min-height: 44px; box-sizing: border-box; padding: 0 12px; border-radius: 12px; border: 1px solid #2A2D33; background: #0E0F11; color: #EDEEF0; font-size: 14px">
+<button onClick="{{g.addHabit}}" aria-label="Add habit" style="width: 44px; height: 44px; flex: none; border: 0; border-radius: 12px; background: {{accent}}; color: #1A1405; display: flex; align-items: center; justify-content: center; padding: 0"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg></button>
+</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<span style="font-size: 13px; font-weight: 700; color: #A0A4AC">Tasks</span>
+<sc-for list="{{g.editTasks}}" as="t" hint-placeholder-count="2">
+<div style="display: flex; align-items: center; gap: 6px">
+<input aria-label="Task" value="{{t.title}}" onChange="{{t.onTitle}}" style="flex: 1; min-width: 0; min-height: 44px; box-sizing: border-box; padding: 0 12px; border-radius: 12px; border: 1px solid #2A2D33; background: #0E0F11; color: #EDEEF0; font-size: 14px">
+<button onClick="{{t.cycle}}" aria-label="Change effort" style="min-height: 44px; flex: none; padding: 0 8px; border-radius: 12px; border: 1px solid #3A3E45; background: transparent; color: #EDEEF0; font-size: 12px; font-weight: 700">{{t.effort}}</button>
+<button onClick="{{t.remove}}" aria-label="{{t.removeLabel}}" style="width: 40px; height: 44px; flex: none; border: 0; border-radius: 12px; background: transparent; color: #80848C; display: flex; align-items: center; justify-content: center; padding: 0"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><line x1="6" y1="6" x2="18" y2="18"></line><line x1="18" y1="6" x2="6" y2="18"></line></svg></button>
+</div>
+</sc-for>
+<sc-if value="{{g.noTasks}}" hint-placeholder-val="{{false}}"><span style="font-size: 13px; color: #80848C">No open tasks. Add new ones after you tap Done.</span></sc-if>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<span style="font-size: 13px; font-weight: 700; color: #A0A4AC">Milestones</span>
+<sc-for list="{{g.editMs}}" as="m" hint-placeholder-count="2">
+<div style="display: flex; align-items: center; gap: 6px">
+<input aria-label="Milestone" value="{{m.title}}" onChange="{{m.onTitle}}" style="flex: 1; min-width: 0; min-height: 44px; box-sizing: border-box; padding: 0 12px; border-radius: 12px; border: 1px solid #2A2D33; background: #0E0F11; color: #EDEEF0; font-size: 14px">
+<input aria-label="When" value="{{m.when}}" onChange="{{m.onWhen}}" placeholder="when" style="width: 84px; flex: none; min-height: 44px; box-sizing: border-box; padding: 0 12px; border-radius: 12px; border: 1px solid #2A2D33; background: #0E0F11; color: #EDEEF0; font-size: 14px">
+<button onClick="{{m.remove}}" aria-label="{{m.removeLabel}}" style="width: 40px; height: 44px; flex: none; border: 0; border-radius: 12px; background: transparent; color: #80848C; display: flex; align-items: center; justify-content: center; padding: 0"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><line x1="6" y1="6" x2="18" y2="18"></line><line x1="18" y1="6" x2="6" y2="18"></line></svg></button>
+</div>
+</sc-for>
+<div style="display: flex; gap: 6px">
+<input aria-label="New milestone" value="{{nm.title}}" onChange="{{nm.onTitle}}" placeholder="Add a milestone…" style="flex: 1; min-width: 0; min-height: 44px; box-sizing: border-box; padding: 0 12px; border-radius: 12px; border: 1px solid #2A2D33; background: #0E0F11; color: #EDEEF0; font-size: 14px">
+<input aria-label="When" value="{{nm.when}}" onChange="{{nm.onWhen}}" placeholder="when" style="width: 84px; flex: none; min-height: 44px; box-sizing: border-box; padding: 0 12px; border-radius: 12px; border: 1px solid #2A2D33; background: #0E0F11; color: #EDEEF0; font-size: 14px">
+<button onClick="{{g.addMs}}" aria-label="Add milestone" style="width: 44px; height: 44px; flex: none; border: 0; border-radius: 12px; background: {{accent}}; color: #1A1405; display: flex; align-items: center; justify-content: center; padding: 0"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg></button>
+</div>
+</div>
+<button onClick="{{g.stopEdit}}" style="min-height: 48px; border: 0; border-radius: 14px; background: {{accent}}; color: #1A1405; font-size: 15px; font-weight: 700">Done</button>
+</div>
+</sc-if>
+<sc-if value="{{g.notEditing}}" hint-placeholder-val="{{true}}">
 <div style="display: flex; flex-direction: column; gap: 16px; padding: 0 18px 18px">
 <div style="display: flex; flex-direction: column; gap: 4px">
 <span style="font-size: 14px; line-height: 1.45; color: #C4C7CD">{{g.desc}}</span>
 <span style="font-size: 13px; color: {{accent}}">Done when: {{g.doneWhen}}</span>
-<button onClick="{{g.archive}}" style="align-self: flex-start; margin-top: 8px; min-height: 40px; padding: 0 12px; border: 1px solid #3A3E45; border-radius: 999px; background: transparent; color: #C4C7CD; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px">
+<div style="display: flex; gap: 8px; margin-top: 8px">
+<button onClick="{{g.startEdit}}" style="min-height: 40px; padding: 0 14px; border: 1px solid {{accent}}; border-radius: 999px; background: transparent; color: {{accent}}; font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 8px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"></path></svg>Edit goal</button>
+<button onClick="{{g.archive}}" style="min-height: 40px; padding: 0 12px; border: 1px solid #3A3E45; border-radius: 999px; background: transparent; color: #C4C7CD; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px">
 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="5" rx="1"></rect><path d="M5 9v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9"></path><line x1="10" y1="13" x2="14" y2="13"></line></svg>
-Archive this goal
+Archive
 </button>
+</div>
 </div>
 <sc-if value="{{g.easy}}" hint-placeholder-val="{{false}}">
 <div style="display: flex; align-items: center; gap: 12px; padding: 12px 8px 12px 14px; border-radius: 14px; background: rgba(245,184,65,0.12); border: 1px solid {{accent}}">
@@ -520,6 +597,7 @@ I'm stuck · get help
 </div>
 </div>
 </sc-if>
+</sc-if>
 </article>
 </sc-for>
 
@@ -557,7 +635,6 @@ I'm stuck · get help
 <span style="font-size: 13px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #A0A4AC">Your progress</span>
 <h1 style="margin: 0; font-family: 'Space Grotesk', system-ui, sans-serif; font-size: 40px; font-weight: 700; letter-spacing: -0.02em">Stats</h1>
 </div>
-<span style="padding: 4px 10px; border-radius: 999px; background: #23262B; color: #C4C7CD; font-size: 12px; font-weight: 600">Sample history</span>
 </div>
 
 <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
@@ -604,7 +681,7 @@ I'm stuck · get help
 <div style="position: absolute; left: 0; right: 0; bottom: {{st.avgY}}px; border-top: 2px dashed #C4C7CD; pointer-events: none"></div>
 </div>
 <div style="display: flex; justify-content: space-between; font-size: 11px; color: #80848C">
-<span>23 Sep</span><span>Today</span>
+<span>{{st.firstLabel}}</span><span>Today</span>
 </div>
 <div style="display: flex; gap: 16px; font-size: 12px; color: #A0A4AC">
 <span style="display: flex; align-items: center; gap: 6px"><span style="width: 10px; height: 10px; border-radius: 2px; background: {{c.growth}}"></span>Above avg</span>
@@ -619,6 +696,8 @@ I'm stuck · get help
 <h2 style="margin: 0; font-family: 'Space Grotesk', system-ui, sans-serif; font-size: 16px; font-weight: 600">Avg points per day, by week</h2>
 <span style="font-size: 12px; font-weight: 700; color: {{c.growth}}">{{st.trendDelta}}</span>
 </div>
+<sc-if value="{{st.noTrend}}" hint-placeholder-val="{{false}}"><span style="font-size: 14px; color: #A0A4AC">Your trend appears after your second week.</span></sc-if>
+<sc-if value="{{st.hasTrend}}" hint-placeholder-val="{{true}}">
 <svg width="310" height="110" viewBox="0 0 310 110" role="img" aria-label="{{st.trendAria}}" style="display: block; width: 100%; height: auto; overflow: visible">
 <line x1="0" y1="100" x2="310" y2="100" stroke="#2A2D33" stroke-width="1"></line>
 <polygon points="{{st.trendArea}}" fill="{{c.growthSoft}}" stroke="none"></polygon>
@@ -627,15 +706,16 @@ I'm stuck · get help
 <circle cx="0" cy="{{st.trendFirstY}}" r="4" fill="#16181B" stroke="{{c.growth}}" stroke-width="2"></circle>
 </svg>
 <div style="display: flex; justify-content: space-between; font-size: 11px; color: #80848C">
-<span>W29 · {{st.trendFirst}}</span><span>W40 · {{st.trendLast}}</span>
+<span>{{st.trendFirst}}</span><span>{{st.trendLast}}</span>
 </div>
+</sc-if>
 </section>
 
 <!-- Weekday pattern -->
 <section style="display: flex; flex-direction: column; gap: 12px; padding: 18px; border-radius: 20px; background: #16181B">
 <div style="display: flex; justify-content: space-between; align-items: baseline">
 <h2 style="margin: 0; font-family: 'Space Grotesk', system-ui, sans-serif; font-size: 16px; font-weight: 600">Your weekdays</h2>
-<span style="font-size: 12px; color: #A0A4AC">avg, last 8 weeks</span>
+<span style="font-size: 12px; color: #A0A4AC">avg points per day</span>
 </div>
 <div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; align-items: end">
 <sc-for list="{{st.weekdays}}" as="w" hint-placeholder-count="7">
@@ -656,6 +736,7 @@ I'm stuck · get help
 <h2 style="margin: 0; font-family: 'Space Grotesk', system-ui, sans-serif; font-size: 16px; font-weight: 600">Where points come from</h2>
 <span style="font-size: 12px; color: #A0A4AC">last 4 weeks</span>
 </div>
+<sc-if value="{{st.noGoals}}" hint-placeholder-val="{{false}}"><span style="font-size: 14px; color: #A0A4AC">Add a goal to see where your points come from.</span></sc-if>
 <sc-for list="{{st.byGoal}}" as="g" hint-placeholder-count="5">
 <div style="display: grid; grid-template-columns: 92px minmax(0, 1fr) 40px; gap: 10px; align-items: center">
 <span style="font-size: 13px; color: #C4C7CD">{{g.name}}</span>
@@ -673,6 +754,8 @@ I'm stuck · get help
 <h2 style="margin: 0; font-family: 'Space Grotesk', system-ui, sans-serif; font-size: 16px; font-weight: 600">Focus by time of day</h2>
 <span style="font-size: 12px; color: #A0A4AC">avg rating /5</span>
 </div>
+<sc-if value="{{st.noFocus}}" hint-placeholder-val="{{false}}"><span style="font-size: 14px; color: #A0A4AC">Rate your focus after a few sessions to see when you work best.</span></sc-if>
+<sc-if value="{{st.hasFocus}}" hint-placeholder-val="{{true}}">
 <sc-for list="{{st.focusTimes}}" as="f" hint-placeholder-count="4">
 <div style="display: grid; grid-template-columns: 92px minmax(0, 1fr) 40px; gap: 10px; align-items: center">
 <span style="font-size: 13px; color: #C4C7CD">{{f.name}}</span>
@@ -683,6 +766,7 @@ I'm stuck · get help
 </div>
 </sc-for>
 <span style="font-size: 12px; color: #A0A4AC">{{st.phoneLine}}</span>
+</sc-if>
 </section>
 </div>
 </sc-if>
@@ -690,7 +774,7 @@ I'm stuck · get help
 </div>
 
 <!-- ============ TAB BAR ============ -->
-<nav aria-label="Main" style="flex: none; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; padding: 8px 12px max(12px, env(safe-area-inset-bottom, 0px)); background: #121316; border-top: 1px solid #23262B">
+<nav aria-label="Main" style="flex: none; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; padding: 8px 12px calc(env(safe-area-inset-bottom, 0px) + 6px); background: #121316; border-top: 1px solid #23262B">
 <button onClick="{{tabs.today.go}}" aria-current="{{tabs.today.current}}" style="min-height: 52px; border: 0; background: transparent; color: {{tabs.today.color}}; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 11px; font-weight: 700; padding: 0">
 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><line x1="12" y1="2" x2="12" y2="4"></line><line x1="12" y1="20" x2="12" y2="22"></line><line x1="2" y1="12" x2="4" y2="12"></line><line x1="20" y1="12" x2="22" y2="12"></line><line x1="4.9" y1="4.9" x2="6.3" y2="6.3"></line><line x1="17.7" y1="17.7" x2="19.1" y2="19.1"></line><line x1="4.9" y1="19.1" x2="6.3" y2="17.7"></line><line x1="17.7" y1="6.3" x2="19.1" y2="4.9"></line></svg>
 Today
@@ -775,7 +859,7 @@ Stats
 <!-- ============ EVENING REVIEW ============ -->
 <sc-if value="{{ev.show}}" hint-placeholder-val="{{false}}">
 <div style="position: absolute; inset: 0; background: #0E0F11; display: flex; flex-direction: column">
-<div class="scroll" role="dialog" aria-label="Evening review" style="flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: none; padding: calc(env(safe-area-inset-top, 0px) + 24px) 20px 32px; display: flex; flex-direction: column; gap: 22px">
+<div class="scroll" role="dialog" aria-label="Evening review" style="flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: none; padding: calc(max(env(safe-area-inset-top, 0px), 50px) + 30px) 20px 32px; display: flex; flex-direction: column; gap: 22px">
 <div style="display: flex; justify-content: space-between; align-items: flex-end">
 <div style="display: flex; flex-direction: column; gap: 6px">
 <span style="font-size: 13px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #A0A4AC">{{_hdrShort}}</span>
@@ -825,7 +909,7 @@ Stats
 // ---- Mini runtime: renders the <template id="dc-tpl"> markup with Preact ----
 (function () {
   var h = preact.h;
-  var STORE = 'planner-state-v2';
+  var STORE = 'planner-state-v3';
 
   function isoDate(d) { return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); }
   var now = new Date();
@@ -856,13 +940,18 @@ Stats
     try { saved = JSON.parse(localStorage.getItem(STORE) || 'null'); } catch (e) {}
     if (!saved || !saved.state) return;
     var s = saved.state, d = app.state;
-    var keep = { goals: s.goals, pool: s.pool, targets: s.targets, fixed: s.fixed, openGoal: s.openGoal, cancel: {} };
+    var keep = { goals: s.goals, pool: s.pool, targets: s.targets, fixed: s.fixed, openGoal: s.openGoal, cancel: {}, log: s.log || [], since: s.since };
     if (saved.week === __WEEK_KEY) {
       Object.assign(keep, { placed: s.placed, rec: s.rec, cancel: s.cancel || {}, low: s.low, sel: s.sel, split: s.split });
       if (saved.day === __DAY_KEY) Object.assign(keep, { checkin: s.checkin, must: s.must, focus: s.focus, low: s.low });
-    } else if (s.placed) {
-      // new week: keep the weekly plan, clear what was done
-      keep.placed = s.placed.map(function (p) { var q = Object.assign({}, p); delete q.from; return q; });
+    } else {
+      // new week: move last week's results into the long-term log, keep the weekly plan
+      var wp = String(saved.week).split('-').map(Number), wMon = new Date(wp[0], wp[1] - 1, wp[2], 12);
+      Object.keys(s.rec || {}).forEach(function (k) {
+        var r = s.rec[k], d = new Date(wMon); d.setDate(wMon.getDate() + (r.day || 0));
+        keep.log.push({ d: d.getTime(), pts: r.pts, goal: r.goal, focus: r.focus || null, phone: !!r.phone, hour: r.hour == null ? 12 : r.hour });
+      });
+      if (s.placed) keep.placed = s.placed.filter(function (p) { return p.status !== 'suggested'; }).map(function (p) { var q = Object.assign({}, p); delete q.from; return q; });
     }
     Object.keys(keep).forEach(function (k) { if (keep[k] !== undefined) d[k] = keep[k]; });
     // make sure new ids never collide with saved ones
@@ -915,6 +1004,7 @@ Stats
     var root = document.getElementById('root');
     var app = new Component(props);
     restore(app);
+    if (!app.state.since) { app.state.since = Date.now(); app._save(); }
     var queued = false;
     app._rerender = function () {
       if (queued) return; queued = true;
@@ -944,14 +1034,7 @@ var __mon = new Date(__now); __mon.setDate(__now.getDate() - TODAY);
 var DATE_OBJS = [0,1,2,3,4,5,6].map(function (i) { var d = new Date(__mon); d.setDate(__mon.getDate() + i); return d; });
 var DATES = DATE_OBJS.map(function (d) { return d.getDate(); });
 var MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-var DEFAULT_GOALS = [
-  { id: 'french', name: 'French', desc: 'Speak French with confidence by December.', doneWhen: 'a 15-min conversation without switching to English', milestones: [{ id: 'm1', title: 'First 500 words learned', when: 'end of Oct' }, { id: 'm2', title: '15-min conversation with a local', when: 'Dec' }] },
-  { id: 'fit', name: 'Get top fit', desc: 'Gym and swimming are going well. Run more often.', doneWhen: 'running 10 km comfortably', milestones: [{ id: 'm3', title: 'Run 5 km without stopping', when: 'end of Oct' }, { id: 'm4', title: 'Run 10 km', when: 'Dec' }] },
-  { id: 'ai', name: 'Build an AI project', desc: 'Learn to use AI properly and build something worth putting on the CV.', doneWhen: 'a working app other people can try', milestones: [{ id: 'm5', title: 'First working prototype', when: 'this month' }, { id: 'm6', title: 'Shown to 5 people', when: 'Nov' }] },
-  { id: 'uni', name: 'Uni: pass everything', desc: 'Low priority. Steady effort, no overkill.', doneWhen: 'all courses passed', milestones: [{ id: 'm7', title: 'All deadlines in the calendar', when: 'this week' }, { id: 'm8', title: 'All courses passed', when: 'Dec' }] },
-  { id: 'org', name: 'Get organised', desc: 'Know what to do each day, so starting is easy.', doneWhen: 'using the planner every day for a month', milestones: [{ id: 'm9', title: '7 evening reviews in a row', when: 'next week' }] },
-  { id: 'wake', name: 'Early rise', desc: 'One steady rhythm: up around 7, every day.', doneWhen: 'up by 7:00 for 30 days', milestones: [{ id: 'm10', title: '14 days in a row', when: 'end of Oct' }] }
-];
+var DEFAULT_GOALS = [];
 var TEMPLATES = [
   { re: /run|marathon|fit|gym|muscle|weight|swim|\b\d+ ?k\b|strength|health|sport/, doneWhen: 'you hit a number you can measure (distance, time or weight)',
     habits: [{ title: 'Run', count: 3, dur: 40, pts: 15, mini: '10-min jog', miniDur: 10, starter: 'Put on your running shoes' }, { title: 'Strength session', count: 2, dur: 45, pts: 15, mini: '15-min bodyweight set', miniDur: 15, starter: 'Lay out your gym clothes' }],
@@ -1004,13 +1087,6 @@ function makePlan(text, level) {
 var GROWTH = '#4CD787'; // progress / above average
 var ENERGY = '#FF7A3D'; // drive / action
 var EFFORT = { '5 min': 5, '30 min': 10, '1 hour': 20 };
-// Sample history (prototype only)
-var HIST_DAILY = [30, 52, 34, 61, 44, 70, 66, 38, 58, 35, 55, 47]; // 23 Sep – 4 Oct
-var HIST_WEEKLY = [31, 34, 30, 37, 40, 38, 43, 41, 46, 49, 47, 52]; // W29–W40, avg pts/day
-var HIST_WEEKDAY = [62, 60, 36, 55, 39, 50, 44];
-var HIST_GOALS = { french: 310, fit: 420, ai: 190, uni: 380, org: 120, wake: 110 };
-var HIST_FOCUS = [{ name: 'Morning', sum: 41, n: 10 }, { name: 'Midday', sum: 23, n: 7 }, { name: 'Afternoon', sum: 26, n: 9 }, { name: 'Evening', sum: 29, n: 8 }];
-var HIST_PHONE = { yes: 19, n: 34 };
 
 var uid = 500;
 function nid(p) { uid += 1; return p + uid; }
@@ -1022,43 +1098,15 @@ function bucket(h) { return h < 12 ? 0 : h < 15 ? 1 : h < 18 ? 2 : 3; }
 class Component extends DCLogic {
   constructor(props) {
     super(props);
-    var targets = [
-      { id: 'french', title: 'French vocab', goal: 'french', count: 7, dur: 20, pts: 10, mini: '5 vocab cards', miniDur: 5, starter: 'Open Anki and do one card', lastBefore: 0 },
-      { id: 'run', title: 'Run', goal: 'fit', count: 3, dur: 45, pts: 15, mini: '10-min jog', miniDur: 10, starter: 'Put on your running shoes', lastBefore: 3 },
-      { id: 'gym', title: 'Gym', goal: 'fit', count: 3, dur: 90, pts: 15, mini: '20-min home workout', miniDur: 20, starter: 'Pack the gym bag', lastBefore: 1 },
-      { id: 'ai', title: 'AI project', goal: 'ai', count: 4, dur: 90, pts: 20, mini: '15 min: write the next step', miniDur: 15, starter: 'Open the project, read your last note', lastBefore: 4 },
-      { id: 'study', title: 'Uni study block', goal: 'uni', count: 2, dur: 90, pts: 15, mini: '15 min with the slides', miniDur: 15, starter: 'Open the lecture slides', lastBefore: 6 }
-    ];
-    var fixed = [
-      { id: 'wake1', days: [0, 1], start: '06:30', end: '06:45', title: 'Wake up', kind: 'Habit', goal: 'wake', pts: 5 },
-      { id: 'wake2', days: [2, 3, 4, 5, 6], start: '07:00', end: '07:15', title: 'Wake up', kind: 'Habit', goal: 'wake', pts: 5 },
-      { id: 'lec1', days: [0, 1], start: '08:00', end: '16:30', title: 'Lectures', kind: 'Uni', goal: 'uni', pts: 15 },
-      { id: 'lec2', days: [3], start: '13:15', end: '16:30', title: 'Lectures', kind: 'Uni', goal: 'uni', pts: 10 }
-    ];
+    var targets = [];
+    var fixed = [];
     var P = function (id, tid, day, start, extra) { return Object.assign({ id: id, tid: tid, day: day, start: start, status: 'planned' }, extra || {}); };
-    var placed = [
-      P('p1', 'french', 0, '07:00'), P('p2', 'gym', 0, '18:00'),
-      P('p3', 'run', 1, '17:00', { from: 'Mon' }), P('p4', 'french', 1, '07:00'), P('p5', 'ai', 1, '20:00'),
-      P('p6', 'french', 2, '07:30'), P('p7', 'ai', 2, '09:00'), P('p8', 'run', 2, '11:30'),
-      P('p9', 'french', 3, '07:30'), P('p10', 'gym', 3, '10:00'),
-      P('p11', 'french', 4, '07:30'), P('p12', 'ai', 4, '09:00'), P('p13', 'gym', 4, '14:00'),
-      P('p14', 'run', 5, '09:00'), P('p15', 'french', 5, '11:00'), P('p16', 'french', 6, '10:00')
-    ];
+    var placed = [];
     var rec = {};
-    var pool = [
-      { id: 't1', title: 'Write 5 sentences about my day', goal: 'french', effort: '5 min', today: false },
-      { id: 't2', title: 'French podcast episode', goal: 'french', effort: '30 min', today: false },
-      { id: 't3', title: 'Stretching', goal: 'fit', effort: '5 min', today: false },
-      { id: 't4', title: 'Sketch the next app feature', goal: 'ai', effort: '30 min', today: false },
-      { id: 't5', title: 'Watch one AI tutorial', goal: 'ai', effort: '30 min', today: false },
-      { id: 't6', title: 'Review lecture notes', goal: 'uni', effort: '30 min', today: false },
-      { id: 't7', title: 'Check course deadlines', goal: 'uni', effort: '5 min', today: false },
-      { id: 't8', title: 'Reply to LinkedIn messages', goal: 'org', effort: '30 min', today: true },
-      { id: 't9', title: 'Clear email inbox', goal: 'org', effort: '30 min', today: false }
-    ];
+    var pool = [];
     this.state = {
       tab: 'today', day: TODAY, targets: targets, fixed: fixed, placed: placed, rec: rec, pool: pool,
-      goals: DEFAULT_GOALS.map(function (g) { return Object.assign({}, g, { milestones: g.milestones.map(function (m) { return Object.assign({ done: false }, m); }) }); }), openGoal: 'ai', cp: null, help: null,
+      goals: DEFAULT_GOALS.map(function (g) { return Object.assign({}, g, { milestones: g.milestones.map(function (m) { return Object.assign({ done: false }, m); }) }); }), openGoal: null, cp: null, editGoal: null, log: [], since: null, nh: { title: '' }, nm: { title: '', when: '' }, help: null,
       cancel: {}, low: false, checkin: { step: 1, done: false }, must: null,
       focus: null, rf: null, evening: false, sel: 13, split: false,
       nb: { title: '', time: '18:00', end: '19:00' },
@@ -1069,6 +1117,7 @@ class Component extends DCLogic {
   componentDidMount() { this.ticks = 0; this.timer = setInterval(() => { this.ticks += 1; if (this.state.focus || this.ticks % 20 === 0) this.forceUpdate(); }, 1000); }
   componentWillUnmount() { clearInterval(this.timer); }
 
+  updGoal(gid, patch) { this.setState((st) => ({ goals: st.goals.map(function (x) { return x.id === gid ? Object.assign({}, x, patch) : x; }) })); }
   isArchived(gid) { var g = this.state.goals.find(function (x) { return x.id === gid; }); return !!(g && g.archived); }
   isEasy(gid) { var g = this.state.goals.find(function (x) { return x.id === gid; }); return !!(g && g.easyUntil); }
 
@@ -1301,6 +1350,8 @@ class Component extends DCLogic {
       energies: [['Low', 'low'], ['OK', 'ok'], ['High', 'high']].map(function (x) {
         return { label: x[0], pick: function () { self.setState({ low: x[1] === 'low', checkin: { step: 2, done: false } }); } };
       }),
+      skip: function () { self.setState({ checkin: { step: 2, done: true } }); },
+      noOptions: !all.some(function (x) { return x.kind !== 'Uni' && !x.habit && !s.rec[x.id]; }),
       options: all.filter(function (x) { return x.kind !== 'Uni' && !x.habit && !s.rec[x.id]; }).slice(0, 5).map(function (x) {
         return { title: x.title, pick: function () { self.setState({ must: x.id, checkin: { step: 2, done: true } }); } };
       })
@@ -1329,8 +1380,17 @@ class Component extends DCLogic {
     // evening
     var leftovers = all.filter(function (x) { return !s.rec[x.id] && x.kind !== 'Uni' && !x.habit; });
     var dailyPts = function (d) { return Object.keys(s.rec).reduce(function (a, k) { return a + (s.rec[k].day === d ? s.rec[k].pts : 0); }, 0); };
-    var daily14 = HIST_DAILY.concat([dailyPts(0), todayPts]);
-    var avg14 = Math.round(daily14.reduce(function (a, b) { return a + b; }, 0) / 14);
+    // ---- real history: past weeks (s.log) + this week (s.rec) ----
+    var DAYMS = 864e5;
+    var dayStart = function (d) { var x = new Date(d); x.setHours(0, 0, 0, 0); return x.getTime(); };
+    var todayT = dayStart(new Date());
+    var allRecs = (s.log || []).map(function (r) { return Object.assign({}, r, { t: dayStart(r.d) }); }).concat(Object.keys(s.rec).map(function (k) { var r = s.rec[k]; return Object.assign({}, r, { t: dayStart(DATE_OBJS[r.day]) }); }));
+    var sinceT = s.since ? dayStart(s.since) : todayT;
+    var ptsOn = function (t) { return allRecs.reduce(function (a, r) { return a + (r.t === t ? r.pts : 0); }, 0); };
+    var days14 = []; for (var di = 13; di >= 0; di--) days14.push(dayStart(todayT - di * DAYMS + 2 * 3600e3));
+    var daily14 = days14.map(ptsOn);
+    var activeDays14 = days14.filter(function (t) { return t >= sinceT; }).length || 1;
+    var avg14 = Math.round(daily14.reduce(function (a, b) { return a + b; }, 0) / activeDays14);
     var ev = {
       show: s.evening,
       vsAvg: todayPts >= avg14 ? (todayPts - avg14) + ' above your average' : (avg14 - todayPts) + ' below your average',
@@ -1386,6 +1446,7 @@ class Component extends DCLogic {
         cancelText: it.cancelled ? 'Restore' : 'Cancel',
         cancel: function () { self.setState((st) => { var c = Object.assign({}, st.cancel); c[it.id] = !c[it.id]; return { cancel: c }; }); },
         removeLabel: 'Remove ' + it.title,
+        deleteFixed: function () { var fid = it.fid || (it.id.split('-')[1]); self.setState((st) => ({ fixed: st.fixed.map(function (f) { return f.id !== fid ? f : Object.assign({}, f, { days: f.days.filter(function (d) { return d !== s.day; }) }); }).filter(function (f) { return f.days.length > 0; }) })); },
         remove: function () { self.setState((st) => ({ placed: st.placed.filter(function (p) { return p.id !== it.id; }) })); }
       };
     });
@@ -1424,8 +1485,51 @@ class Component extends DCLogic {
         border: open ? '#3A3E45' : 'transparent',
         pct: mine.length ? Math.round((doneN / mine.length) * 100) : 0,
         summary: (g.easyUntil ? 'Easy mode · ' : '') + (mine.length ? doneN + ' of ' + mine.length + ' this week' : 'Nothing scheduled yet') + (nextMs ? ' · next: ' + nextMs.title : ' · all milestones done'),
-        toggle: function () { self.setState({ openGoal: open ? null : g.id }); },
+        toggle: function () { self.setState({ openGoal: open ? null : g.id, editGoal: null }); },
         hasHabits: habits.length > 0, habits: habits,
+        editing: open && s.editGoal === g.id, notEditing: !(open && s.editGoal === g.id),
+        startEdit: function () { self.setState({ editGoal: g.id, help: null, nh: { title: '' }, nm: { title: '', when: '' } }); },
+        stopEdit: function () { self.setState({ editGoal: null }); },
+        onName: function (e) { var v = e.target.value; self.updGoal(g.id, { name: v }); },
+        onDoneWhen: function (e) { var v = e.target.value; self.updGoal(g.id, { doneWhen: v }); },
+        editHabits: s.targets.filter(function (t) { return t.goal === g.id; }).map(function (t) {
+          var upd = function (fn) { self.setState((st) => ({ targets: st.targets.map(function (x) { return x.id === t.id ? Object.assign({}, x, fn(x)) : x; }) })); };
+          return {
+            title: t.title, count: t.count, dur: t.dur, removeLabel: 'Delete ' + t.title,
+            onTitle: function (e) { var v = e.target.value; upd(function () { return { title: v }; }); },
+            minus: function () { upd(function (x) { return { count: Math.max(1, x.count - 1) }; }); },
+            plus: function () { upd(function (x) { return { count: Math.min(14, x.count + 1) }; }); },
+            durMinus: function () { upd(function (x) { var d = Math.max(5, x.dur - (x.dur > 30 ? 15 : 5)); return { dur: d, miniDur: Math.min(x.miniDur || 10, d) }; }); },
+            durPlus: function () { upd(function (x) { return { dur: Math.min(240, x.dur + (x.dur >= 30 ? 15 : 5)) }; }); },
+            remove: function () { self.setState((st) => ({ targets: st.targets.filter(function (x) { return x.id !== t.id; }), placed: st.placed.filter(function (p) { return p.tid !== t.id; }) })); }
+          };
+        }),
+        addHabit: function () {
+          var title = (self.state.nh.title || '').trim(); if (!title) return;
+          self.setState((st) => ({ targets: st.targets.concat([{ id: nid('h'), title: title, goal: g.id, count: 3, dur: 30, pts: 15, mini: '10 minutes of ' + title.toLowerCase(), miniDur: 10, starter: 'Get set up for ' + title.toLowerCase(), lastBefore: 0 }]), nh: { title: '' } }));
+        },
+        noTasks: openTasks.length === 0,
+        editTasks: openTasks.map(function (t) {
+          return {
+            title: t.title, effort: t.effort, removeLabel: 'Delete ' + t.title,
+            onTitle: function (e) { var v = e.target.value; self.setState((st) => ({ pool: st.pool.map(function (x) { return x.id === t.id ? Object.assign({}, x, { title: v }) : x; }) })); },
+            cycle: function () { var ks = Object.keys(EFFORT); self.setState((st) => ({ pool: st.pool.map(function (x) { return x.id === t.id ? Object.assign({}, x, { effort: ks[(ks.indexOf(x.effort) + 1) % ks.length] }) : x; }) })); },
+            remove: function () { self.setState((st) => ({ pool: st.pool.filter(function (x) { return x.id !== t.id; }), must: st.must === t.id ? null : st.must })); }
+          };
+        }),
+        editMs: g.milestones.map(function (m) {
+          var updM = function (patch) { self.setState((st) => ({ goals: st.goals.map(function (x) { return x.id !== g.id ? x : Object.assign({}, x, { milestones: x.milestones.map(function (y) { return y.id === m.id ? Object.assign({}, y, patch) : y; }) }); }) })); };
+          return {
+            title: m.title, when: m.when, removeLabel: 'Delete ' + m.title,
+            onTitle: function (e) { updM({ title: e.target.value }); },
+            onWhen: function (e) { updM({ when: e.target.value }); },
+            remove: function () { self.setState((st) => ({ goals: st.goals.map(function (x) { return x.id !== g.id ? x : Object.assign({}, x, { milestones: x.milestones.filter(function (y) { return y.id !== m.id; }) }); }) })); }
+          };
+        }),
+        addMs: function () {
+          var nm = self.state.nm, title = (nm.title || '').trim(); if (!title) return;
+          self.setState((st) => ({ goals: st.goals.map(function (x) { return x.id !== g.id ? x : Object.assign({}, x, { milestones: x.milestones.concat([{ id: nid('m'), title: title, when: (nm.when || '').trim(), done: false }]) }); }), nm: { title: '', when: '' } }));
+        },
         tasks: openTasks.map(function (t) {
           return {
             title: t.title, today: t.today, meta: t.effort + ' · +' + EFFORT[t.effort] + ' pts',
@@ -1500,61 +1604,81 @@ class Component extends DCLogic {
     };
 
     // ---------- Stats ----------
-    var maxD = Math.max.apply(null, daily14.concat([avg14, 40]));
-    var labels = ['23 Sep', '24 Sep', '25 Sep', '26 Sep', '27 Sep', '28 Sep', '29 Sep', '30 Sep', '1 Oct', '2 Oct', '3 Oct', '4 Oct', '5 Oct', 'Today'];
+    var maxD = Math.max.apply(null, daily14.concat([avg14, 20]));
+    var labels = days14.map(function (t, i) { var d = new Date(t); return i === 13 ? 'Today' : d.getDate() + ' ' + MONTHS[d.getMonth()].slice(0, 3); });
     var daily = daily14.map(function (v, i) {
       var sel = s.sel === i;
       return {
         h: Math.max(3, Math.round((v / maxD) * 116)), aria: labels[i] + ': ' + v + ' points',
-        bg: sel ? '#EDEEF0' : (v >= avg14 ? GROWTH : '#4A4E56'),
+        bg: sel ? '#EDEEF0' : (v > 0 && v >= avg14 ? GROWTH : '#4A4E56'),
         pick: function () { self.setState({ sel: i }); }
       };
     });
     var weekPts = [0, 1, 2, 3, 4, 5, 6].reduce(function (a, d) { return a + (d === TODAY ? todayPts : dailyPts(d)); }, 0);
-    var wMin = 20, wMax = 60;
-    var tp = HIST_WEEKLY.map(function (v, i) { return [Math.round(i * (310 / 11)), Math.round(100 - ((v - wMin) / (wMax - wMin)) * 96)]; });
-    var minWd = Math.min.apply(null, HIST_WEEKDAY), maxWd = Math.max.apply(null, HIST_WEEKDAY);
-    var goalTotals = s.goals.map(function (g) {
-      var v = (HIST_GOALS[g.id] || 0) + Object.keys(s.rec).reduce(function (a, k) { return a + (s.rec[k].goal === g.id ? s.rec[k].pts : 0); }, 0);
+    // weekly trend: avg points per active day, last 12 weeks (only weeks since you started)
+    var weekStartT = dayStart(DATE_OBJS[0]);
+    var weeks = [];
+    for (var wi = 11; wi >= 0; wi--) {
+      var ws = dayStart(weekStartT - wi * 7 * DAYMS + 2 * 3600e3), we = ws + 7 * DAYMS;
+      if (we <= sinceT) continue;
+      var nDays = 0, sum = 0;
+      for (var dd = 0; dd < 7; dd++) { var t = dayStart(ws + dd * DAYMS + 2 * 3600e3); if (t >= sinceT && t <= todayT) { nDays++; sum += ptsOn(t); } }
+      var wd0 = new Date(ws);
+      weeks.push({ v: nDays ? Math.round(sum / nDays) : 0, label: wd0.getDate() + ' ' + MONTHS[wd0.getMonth()].slice(0, 3) });
+    }
+    var hasTrend = weeks.length >= 2;
+    var wMax = Math.max.apply(null, weeks.map(function (w) { return w.v; }).concat([10]));
+    var tp = weeks.map(function (w, i) { return [weeks.length > 1 ? Math.round(i * (310 / (weeks.length - 1))) : 0, Math.round(100 - (w.v / wMax) * 96)]; });
+    // weekday pattern: avg points per weekday since you started
+    var wdSum = [0, 0, 0, 0, 0, 0, 0], wdN = [0, 0, 0, 0, 0, 0, 0];
+    for (var t2 = sinceT; t2 <= todayT; t2 = dayStart(t2 + DAYMS + 2 * 3600e3)) { var wdi = (new Date(t2).getDay() + 6) % 7; wdSum[wdi] += ptsOn(t2); wdN[wdi]++; }
+    var WD = wdSum.map(function (v, i) { return wdN[i] ? Math.round(v / wdN[i]) : 0; });
+    var minWd = Math.min.apply(null, WD), maxWd = Math.max.apply(null, WD.concat([1]));
+    var fourWeeksT = todayT - 27 * DAYMS;
+    var goalTotals = s.goals.filter(function (g) { return !g.archived; }).map(function (g) {
+      var v = allRecs.reduce(function (a, r) { return a + (r.goal === g.id && r.t >= fourWeeksT ? r.pts : 0); }, 0);
       return { name: g.name, v: v };
     }).sort(function (a, b) { return b.v - a.v; });
-    var gMax = goalTotals[0].v;
-    var focusAgg = HIST_FOCUS.map(function (f) { return { name: f.name, sum: f.sum, n: f.n }; });
-    var phone = { yes: HIST_PHONE.yes, n: HIST_PHONE.n };
-    Object.keys(s.rec).forEach(function (k) {
-      var r = s.rec[k];
+    var gMax = goalTotals.length && goalTotals[0].v ? goalTotals[0].v : 1;
+    var focusAgg = ['Morning', 'Midday', 'Afternoon', 'Evening'].map(function (n) { return { name: n, sum: 0, n: 0 }; });
+    var phone = { yes: 0, n: 0 };
+    allRecs.forEach(function (r) {
       if (r.focus) { var b = focusAgg[bucket(r.hour)]; b.sum += r.focus; b.n += 1; phone.n += 1; if (r.phone) phone.yes += 1; }
     });
-    var fAvg = focusAgg.map(function (f) { return f.sum / f.n; });
+    var fAvg = focusAgg.map(function (f) { return f.n ? f.sum / f.n : 0; });
     var bestI = fAvg.indexOf(Math.max.apply(null, fAvg));
-    var weakDay = DAY_LONG[HIST_WEEKDAY.indexOf(minWd)];
-    var trendChange = Math.round(((HIST_WEEKLY[11] - HIST_WEEKLY[7]) / HIST_WEEKLY[7]) * 100);
-    var insights = [
-      { text: 'Your average is up ' + trendChange + '% over the last 4 weeks. Keep it going.' },
-      { text: 'You focus best in the ' + focusAgg[bestI].name.toLowerCase() + ' (' + fAvg[bestI].toFixed(1) + '/5). Hard tasks go there first when the app suggests times.' },
-      { text: weakDay + 's and Fridays are your weakest days, both free days. Plan one fixed anchor block there.' }
-    ];
-    if (!s.split) insights.push({ text: 'AI project sessions averaged 2.4/5 focus. 90 minutes may be too long to start.' });
-    else insights.push({ text: 'AI project now runs as 45-min blocks. Watch whether the ratings go up.' });
+    var daysUsed = Math.round((todayT - sinceT) / DAYMS) + 1;
+    var insights = [];
+    if (hasTrend) {
+      var first = weeks[0].v, last = weeks[weeks.length - 1].v;
+      if (first > 0) { var ch = Math.round(((last - first) / first) * 100); insights.push({ text: ch >= 0 ? 'Your daily average is up ' + ch + '% since ' + weeks[0].label + '. Keep it going.' : 'Your daily average is down ' + (-ch) + '% since ' + weeks[0].label + '. Pick one easy win today.' }); }
+    }
+    if (phone.n >= 3) insights.push({ text: 'You focus best in the ' + focusAgg[bestI].name.toLowerCase() + ' (' + fAvg[bestI].toFixed(1) + '/5). Put hard tasks there.' });
+    if (daysUsed >= 14 && maxWd > minWd) insights.push({ text: DAY_LONG[WD.indexOf(minWd)] + ' is your weakest day. Plan one fixed anchor block there.' });
+    if (!insights.length) insights.push({ text: 'Insights show up here after a few days of use. Tick off tasks and rate your focus to feed them.' });
 
     var st = {
       avg: avg14, weekPts: weekPts,
-      dailyLabel: labels[s.sel] + ' · ' + daily14[s.sel] + ' pts',
+      dailyLabel: labels[Math.min(13, s.sel)] + ' · ' + daily14[Math.min(13, s.sel)] + ' pts',
+      firstLabel: labels[0],
       daily: daily, avgY: Math.round((avg14 / maxD) * 116),
       trendArea: '0,100 ' + tp.map(function (p) { return p[0] + ',' + p[1]; }).join(' ') + ' 310,100',
       trendPts: tp.map(function (p) { return p[0] + ',' + p[1]; }).join(' '),
-      trendLastX: tp[11][0], trendLastY: tp[11][1], trendFirstY: tp[0][1],
-      trendFirst: HIST_WEEKLY[0], trendLast: HIST_WEEKLY[11],
-      trendDelta: '+' + Math.round(((HIST_WEEKLY[11] - HIST_WEEKLY[0]) / HIST_WEEKLY[0]) * 100) + '% in 12 weeks',
-      trendAria: 'Average points per day rose from ' + HIST_WEEKLY[0] + ' to ' + HIST_WEEKLY[11] + ' over 12 weeks',
-      weekdays: HIST_WEEKDAY.map(function (v, i) {
-        return { v: v, l: DAY_SHORT[i].charAt(0), h: Math.round((v / maxWd) * 72), bg: v === maxWd ? GROWTH : (v === minWd ? '#3A3E45' : '#5A5F68'), valFg: v === minWd ? '#80848C' : '#C4C7CD' };
+      hasTrend: hasTrend, noTrend: !hasTrend,
+      trendLastX: hasTrend ? tp[tp.length - 1][0] : 0, trendLastY: hasTrend ? tp[tp.length - 1][1] : 0, trendFirstY: hasTrend ? tp[0][1] : 0,
+      trendFirst: hasTrend ? weeks[0].label + ' · ' + weeks[0].v : '', trendLast: hasTrend ? 'This week · ' + weeks[weeks.length - 1].v : '',
+      trendDelta: hasTrend && weeks[0].v ? (weeks[weeks.length - 1].v >= weeks[0].v ? '+' : '') + Math.round(((weeks[weeks.length - 1].v - weeks[0].v) / weeks[0].v) * 100) + '%' : '',
+      trendAria: 'Average points per day by week',
+      weekdays: WD.map(function (v, i) {
+        return { v: v, l: DAY_SHORT[i].charAt(0), h: Math.round((v / maxWd) * 72), bg: v > 0 && v === maxWd ? GROWTH : (v === minWd ? '#3A3E45' : '#5A5F68'), valFg: v === minWd ? '#80848C' : '#C4C7CD' };
       }),
+      hasGoals: goalTotals.length > 0, noGoals: goalTotals.length === 0,
       byGoal: goalTotals.map(function (g) { return { name: g.name, v: g.v, pct: Math.round((g.v / gMax) * 100) }; }),
       focusTimes: focusAgg.map(function (f, i) { return { name: f.name, v: fAvg[i].toFixed(1), pct: Math.round((fAvg[i] / 5) * 100), bg: i === bestI ? GROWTH : '#5A5F68' }; }),
-      phoneLine: 'Phone-free in ' + Math.round((phone.yes / phone.n) * 100) + '% of sessions.',
+      hasFocus: phone.n > 0, noFocus: phone.n === 0,
+      phoneLine: phone.n ? 'Phone-free in ' + Math.round((phone.yes / phone.n) * 100) + '% of sessions.' : '',
       insights: insights,
-      canSplit: !s.split,
+      canSplit: false,
       split: function () { self.setState((st2) => ({ split: true, targets: st2.targets.map(function (t) { return t.id === 'ai' ? Object.assign({}, t, { dur: 45, count: 6, pts: 12 }) : t; }) })); }
     };
 
@@ -1592,7 +1716,7 @@ class Component extends DCLogic {
       openEvening: function () { self.setState({ evening: true }); },
       rf: rf, ev: ev,
 
-      targets: targets,
+      targets: targets, noTargets: targets.length === 0,
       hasSuggestions: suggestions.length > 0, suggestionCount: suggestions.length,
       canSuggest: suggestions.length === 0 && openCount > 0,
       suggest: function () { self.suggest(); },
@@ -1613,6 +1737,10 @@ class Component extends DCLogic {
       },
 
       goalCards: goalCards, cp: cp,
+      nh: { title: s.nh ? s.nh.title : '', onTitle: function (e) { self.setState({ nh: { title: e.target.value } }); } },
+      nm: { title: s.nm ? s.nm.title : '', when: s.nm ? s.nm.when : '',
+        onTitle: function (e) { self.setState({ nm: Object.assign({}, self.state.nm, { title: e.target.value }) }); },
+        onWhen: function (e) { self.setState({ nm: Object.assign({}, self.state.nm, { when: e.target.value }) }); } },
       toast: {
         show: !!(s.toast && s.tab === 'goals'), text: s.toast ? s.toast.text : '',
         undo: function () { var gid = self.state.toast.gid; self.setState((st) => ({ toast: null, openGoal: gid, goals: st.goals.map(function (x) { return x.id === gid ? Object.assign({}, x, { archived: false }) : x; }) })); },
